@@ -1,14 +1,39 @@
+-- AltGift fix no-stack + antimacro
+if getgenv().AltGiftLoaded then return end
+getgenv().AltGiftLoaded = true
+
 pcall(function()
-    local q = queue_on_teleport or (syn and syn.queue_on_teleport) or queueonteleport
-    if q then q('loadstring(game:HttpGet("https://raw.githubusercontent.com/philipptobe-crypto/farm/refs/heads/main/gifter"))()') end
+    if not getgenv().AltGiftQueued then
+        getgenv().AltGiftQueued = true
+        local q = queue_on_teleport or (syn and syn.queue_on_teleport) or queueonteleport
+        if q then q('loadstring(game:HttpGet("https://raw.githubusercontent.com/philipptobe-crypto/farm/refs/heads/main/gifter"))()') end
+    end
 end)
+
 local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
 local WS = game:GetService("Workspace")
 local LP = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local MainName = "dev_scripter912"
-if string.lower(LP.Name) == string.lower(MainName) then return end
-getgenv().AltGiftRun = (getgenv().AltGiftRun or 0) + 1
-local myRun = getgenv().AltGiftRun
+if string.lower(LP.Name) == string.lower(MainName) then getgenv().AltGiftLoaded = false return end
+
+-- antimacro solve auf jedem
+task.spawn(function()
+    local ok, am = pcall(function() return RS:WaitForChild("Events", 10):WaitForChild("AntiMacro", 10) end)
+    if not ok or not am then return end
+    local chk = am:WaitForChild("Check", 10)
+    local rsp = am:WaitForChild("Respond", 10)
+    if not chk or not rsp then return end
+    chk.OnClientEvent:Connect(function(p1)
+        task.delay(0.8 + math.random() * 1.4, function()
+            pcall(function() rsp:FireServer(p1) end)
+            pcall(function()
+                local g = LP.PlayerGui:FindFirstChild("AntiMacroCheck")
+                if g then g:Destroy() end
+            end)
+        end)
+    end)
+end)
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/1.6.66/main.lua"))()
 local Win = WindUI:CreateWindow({
@@ -23,8 +48,7 @@ local Win = WindUI:CreateWindow({
 local Tab = Win:Tab({Title = "Gift", Icon = "gift"})
 local autoGift = true
 local autoReplay = true
-local gifted = false
-local unloaded = false
+local lastGiftJob = ""
 local status = Tab:Paragraph({Title = "idle", Desc = "warte game"})
 
 local function gift50()
@@ -46,37 +70,34 @@ local function getReplay()
 end
 
 Tab:Toggle({Title = "Auto Gift bei Game Start", Value = true, Callback = function(s) autoGift = s end})
-Tab:Button({Title = "Jetzt 50% giften", Callback = function() gifted = false gift50() gifted = true pcall(function() status:SetDesc("manuell gegiftet") end) end})
+Tab:Button({Title = "Jetzt 50% giften", Callback = function() lastGiftJob = "" end})
 Tab:Toggle({Title = "Auto Replay", Value = true, Callback = function(s) autoReplay = s end})
-Tab:Button({Title = "Replay jetzt", Callback = function()
-    local b = getReplay()
-    if b then pcall(function() firesignal(b.Activated) end) end
-end})
+Tab:Button({Title = "Replay jetzt", Callback = function() local b = getReplay() if b then pcall(function() firesignal(b.Activated) end) end end})
 Tab:Button({Title = "Unload Script", Callback = function()
-    unloaded = true
-    pcall(function() game:GetService("CoreGui"):FindFirstChild("AltGift_" .. LP.Name):Destroy() end)
+    getgenv().AltGiftLoaded = false
+    getgenv().AltGiftQueued = false
     pcall(function() Win:Destroy() end)
 end})
 
 task.spawn(function()
-    while true do
+    while getgenv().AltGiftLoaded do
         task.wait(0.5)
-        if unloaded or myRun ~= getgenv().AltGiftRun then break end
         if not WS:FindFirstChild("Towers") then
-            gifted = false
             pcall(function() status:SetTitle("lobby") end)
         else
             pcall(function() status:SetTitle("ingame") end)
-            if autoGift and not gifted then
-                if gift50() then gifted = true pcall(function() status:SetDesc("auto 50% raus") end) end
+            if autoGift and lastGiftJob ~= tostring(game.JobId) then
+                if gift50() then
+                    lastGiftJob = tostring(game.JobId)
+                    pcall(function() status:SetDesc("auto 50% raus " .. tostring(game.JobId):sub(1, 8)) end)
+                end
             end
         end
     end
 end)
 task.spawn(function()
-    while true do
+    while getgenv().AltGiftLoaded do
         task.wait(1)
-        if unloaded or myRun ~= getgenv().AltGiftRun then break end
         if autoReplay then
             local b = getReplay()
             if b then pcall(function() firesignal(b.Activated) end) end
